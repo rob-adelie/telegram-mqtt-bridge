@@ -1,0 +1,14 @@
+[Unit]
+Description=telegram-mqtt-bridge
+After=network.target
+
+[Service]
+ExecStart=%h/Projects/telegram-mqtt-bridge/run.sh
+WorkingDirectory=%h/Projects/telegram-mqtt-bridge
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+
+[Install]
+WantedBy=default.target
+
