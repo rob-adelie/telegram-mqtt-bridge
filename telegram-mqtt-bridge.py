@@ -183,6 +183,7 @@ help_info = "/hb                             Send Heartbeat\
            \n/info <@callsign>   Get INFO\
            \n/snr <@callsign>     Get SNR\
            \n/send <@callsign>  Msg to\
+           \n/hearing <@callsign>  Hearing\
            \n/mail <@callsign>   Msg to mailbox"
             
 
@@ -302,6 +303,25 @@ async def get_snr(update, context):
     outbound_queue.put(('js8/tx/command', message_to_send))
     await update.message.reply_text(f"Sending SNR? to {dest_callsign}...")
 
+async def hearing(update, context):
+    """Sends a 'hearing?' request message to a destination callsign."""
+    args = context.args
+    if not args:
+        await update.message.reply_text("Please provide callsign. \ne.g. /snr @ZS6XYZ")
+        return
+    dest_callsign = parse_identifier(args[0].upper())
+    if "Error:" in dest_callsign:
+        await update.message.reply_text(f"{dest_callsign}")
+        return
+    # Create the JSON payload with the correct 'message' key
+    json_payload = {
+        "message": f"{dest_callsign} hearing?"
+    }
+    # Convert the Python dictionary to a JSON string
+    message_to_send = json.dumps(json_payload)
+    # Place the message and topic in the outbound queue for the MQTT thread to publish
+    outbound_queue.put(('js8/tx/command', message_to_send))
+    await update.message.reply_text(f"Sending HEARING? to {dest_callsign}...")
 
 async def send_mail_message(update, context):
     """
@@ -375,6 +395,9 @@ def run_telegram_bot():
         
         # Add a command handler for /snr
         application.add_handler(CommandHandler("snr", get_snr))
+        
+        # Add a command handler for /hearing
+        application.add_handler(CommandHandler("hearing", hearing))
         
         # Add a command handler for /msg
         application.add_handler(CommandHandler("send", send_message))
