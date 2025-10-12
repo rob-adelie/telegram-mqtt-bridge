@@ -36,17 +36,64 @@ To run this application, you need the following:
 
 ## Installation & Setup
 
+### Linux/macOS Installation
+
 1. **Clone the Repository:**
+```bash
+git clone https://github.com/rob-adelie/telegram-mqtt-bridge.git
+cd telegram-mqtt-bridge
+```
 
-git clone https://www.google.com/search?q=https://github.com/your-username/js8-telegram-bridge.git
-cd js8-telegram-bridge
+2. **Configure the Application:**
+Edit `telegram-mqtt-bridge.cfg` with your system settings:
+- Telegram Bot Token
+- Chat ID
+- MQTT Broker details
+- Your callsign and grid
 
-Enter your system settings in the .cfg file
+3. **Run Installation Script:**
+```bash
+./install.sh
+```
 
-Run install.sh
+### Windows Installation
 
+1. **Clone the Repository:**
+```bash
+git clone https://github.com/rob-adelie/telegram-mqtt-bridge.git
+cd telegram-mqtt-bridge
+```
 
-4. **Configure the Application:**
+2. **Configure the Application:**
+Edit `telegram-mqtt-bridge.cfg` with your system settings:
+- Telegram Bot Token
+- Chat ID  
+- MQTT Broker details
+- Your callsign and grid
+
+3. **Run Installation Script:**
+Double-click `install.bat` or run from command prompt:
+```cmd
+install.bat
+```
+
+The Windows installer will:
+- Create a Python virtual environment
+- Install required dependencies
+- Create a startup shortcut for automatic launch
+- Set up logging directory
+
+4. **Manual Testing:**
+To test the installation, run:
+```cmd
+run.bat
+```
+
+5. **Uninstallation:**
+To remove the installation, run:
+```cmd
+uninstall.bat
+```
 
 
 ## Usage
