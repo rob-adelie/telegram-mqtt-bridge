@@ -114,6 +114,8 @@ Once the application is running, you can interact with it via Telegram using the
 
 * `/mail <@callsign> <message>`: Sends a message to a callsign's mailbox (e.g., `/mail @ZS6RSJ Hi, this is a test`).
 
+* `/email emailaddress message` : sends an email via aprsis to emailaddress (e.g., `/email xxx@yyy.com This is a test`)
+
 All JS8Call messages received via MQTT on the configured topic will be automatically forwarded to your Telegram chat.
 
 ## Contributing & License
