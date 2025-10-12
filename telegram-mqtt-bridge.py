@@ -127,6 +127,9 @@ inbound_queue = queue.Queue()
 # outbound_queue is for messages to be sent from Telegram -> MQTT
 outbound_queue = queue.Queue()
 
+# Email sequence number counter (1-10, cycles back to 1)
+email_sequence = 1
+
 # --- MQTT Functions ---
 def on_connect(client, userdata, flags, rc, properties):
     """Callback function for when the MQTT client connects."""
@@ -184,7 +187,8 @@ help_info = "/hb                             Send Heartbeat\
            \n/snr <@callsign>     Get SNR\
            \n/send <@callsign>  Msg to\
            \n/hearing <@callsign>  Hearing\
-           \n/mail <@callsign>   Msg to mailbox"
+           \n/mail <@callsign>   Msg to mailbox\
+           \n/email <email> <message>  Send email via JS8Call"
             
 
 # --- Telegram Bot Functions ---
@@ -378,6 +382,48 @@ async def send_message(update, context):
     outbound_queue.put(('js8/tx/command', message_to_send))
     await update.message.reply_text(f"Sending message to {dest_callsign}...")
 
+async def send_email(update, context):
+    """
+    Sends an email via JS8Call's APRSIS CMD capability.
+    
+    Example usage in Telegram: /email user@example.com "Test Subject" "Hello from JS8Call!"
+    """
+    global email_sequence
+    
+    args = context.args
+    # Check for the correct number of arguments (email + subject + at least one word for the message)
+    if len(args) < 3:
+        await update.message.reply_text("Please provide email, subject, and message. \ne.g. /email user@example.com \"Test Subject\" \"Hello from JS8Call!\"")
+        return
+    
+    email_address = args[0]
+    subject = args[1]
+    # The rest of the arguments are the message text. We join them with spaces.
+    message_text = " ".join(args[2:])
+    
+    # Validate email format (basic validation)
+    if "@" not in email_address or "." not in email_address.split("@")[1]:
+        await update.message.reply_text("Please provide a valid email address.")
+        return
+    
+    # Format the email message for JS8Call APRSIS CMD
+    # JS8Call uses @APRSIS CMD :EMAIL-2  :recipient message{sequence_number} format
+    # We generate the sequence number (1-10, cycles back to 1)
+    email_command = f"@APRSIS CMD :EMAIL-2  :{email_address} {subject} {message_text}{{{email_sequence:02d}}}"
+    
+    # Increment sequence number (1-10, then back to 1)
+    email_sequence = (email_sequence % 10) + 1
+    
+    # Create the JSON payload with the correct 'message' key
+    json_payload = {
+        "message": email_command
+    }
+    # Convert the Python dictionary to a JSON string
+    message_to_send = json.dumps(json_payload)
+    # Place the message and topic in the outbound queue for the MQTT thread to publish
+    outbound_queue.put(('js8/tx/command', message_to_send))
+    await update.message.reply_text(f"Sending email to {email_address} with subject '{subject}'...")
+
 
 # --- Main Functions ---
 def run_telegram_bot():
@@ -404,6 +450,9 @@ def run_telegram_bot():
         
         # Add a command handler for /mail
         application.add_handler(CommandHandler("mail", send_mail_message))
+
+        # Add a command handler for /email
+        application.add_handler(CommandHandler("email", send_email))
 
         # Add a command handler for /hb
         application.add_handler(CommandHandler("hb", heartbeat))
