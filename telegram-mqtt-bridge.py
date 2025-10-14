@@ -188,7 +188,8 @@ help_info = "/hb                             Send Heartbeat\
            \n/send <@callsign>  Msg to\
            \n/hearing <@callsign>  Hearing\
            \n/mail <@callsign>   Msg to mailbox\
-           \n/email <email> <message>  Send email via JS8Call"
+           \n/email <email> <message>  Send email via JS8Call\
+           \n/relay <relay> <dest> <msg>  Relay message via JS8Call"
             
 
 # --- Telegram Bot Functions ---
@@ -424,6 +425,44 @@ async def send_email(update, context):
     outbound_queue.put(('js8/tx/command', message_to_send))
     await update.message.reply_text(f"Sending email to {email_address} with subject '{subject}'...")
 
+async def relay_message(update, context):
+    """
+    Relays a message through JS8Call using the format: relaying_station>destination_station>my message
+    
+    Example usage in Telegram: /relay @ZS6ABC @ZS6XYZ Hello from relay
+    """
+    args = context.args
+    # Check for the correct number of arguments (relay station + destination + at least one word for the message)
+    if len(args) < 3:
+        await update.message.reply_text("Please provide relay station, destination, and message. \ne.g. /relay @ZS6ABC @ZS6XYZ Hello from relay!")
+        return
+    
+    relay_station = parse_identifier(args[0].upper())
+    if "Error:" in relay_station:
+        await update.message.reply_text(f"Relay station error: {relay_station}")
+        return
+    
+    dest_station = parse_identifier(args[1].upper())
+    if "Error:" in dest_station:
+        await update.message.reply_text(f"Destination station error: {dest_station}")
+        return
+    
+    # The rest of the arguments are the message text. We join them with spaces.
+    message_text = " ".join(args[2:])
+    
+    # Create the relay message in the format: relaying_station>destination_station>my message
+    relay_message = f"{relay_station}>{dest_station}>{message_text}"
+    
+    # Create the JSON payload with the correct 'message' key
+    json_payload = {
+        "message": relay_message
+    }
+    # Convert the Python dictionary to a JSON string
+    message_to_send = json.dumps(json_payload)
+    # Place the message and topic in the outbound queue for the MQTT thread to publish
+    outbound_queue.put(('js8/tx/command', message_to_send))
+    await update.message.reply_text(f"Relaying message: {relay_station}>{dest_station}>{message_text}")
+
 
 # --- Main Functions ---
 def run_telegram_bot():
@@ -459,6 +498,9 @@ def run_telegram_bot():
         
         # Add a command handler for /info
         application.add_handler(CommandHandler("info", info))
+
+        # Add a command handler for /relay
+        application.add_handler(CommandHandler("relay", relay_message))
 
         # Add a message handler for all text messages (filters.TEXT)
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
